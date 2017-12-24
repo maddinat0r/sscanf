@@ -1,0 +1,21 @@
+{
+    "user": "maddinat0r",
+    "repo": "sscanf",
+    "contributors": ["Y_Less", "Emmet_"],
+    "resources": [
+        {
+            "name": "^sscanf-(.+)-linux.tar.gz$",
+            "platform": "linux",
+            "archive": true,
+            "includes": ["."],
+            "plugins": ["plugins/sscanf.so"]
+        },
+        {
+            "name": "^sscanf-(.*)-win32.zip$",
+            "platform": "windows",
+            "archive": true,
+            "includes": ["."],
+            "plugins": ["plugins/sscanf.dll"]
+        }
+    ]
+}
