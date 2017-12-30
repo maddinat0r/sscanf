@@ -110,8 +110,8 @@ static stock
 					if (!SSCANF_g_sPlayers{i})
 					{
 						new
-							name[MAX_PLAYER_NAME];
-						GetPlayerName(i, name, sizeof (name));
+							name[MAX_PLAYER_NAME + 1];
+						GetPlayerName(i, name, sizeof(name));
 						// We have no way to know if they are an NPC or not!
 						SSCANF_Join(i, name, 0);
 						SSCANF_g_sPlayers{i} = 1;
@@ -140,21 +140,21 @@ static stock
 	public OnFilterScriptInit()
 	{
 	    new
-     		name[MAX_PLAYER_NAME];
-	
+     		name[MAX_PLAYER_NAME + 1];
+
 		SSCANF_Init(GetMaxPlayers(), INVALID_PLAYER_ID, MAX_PLAYER_NAME);
 		SSCANF_gInit = true;
-		
+
 		// Check if there are any players that aren't initialized.
 		for (new i = 0; i < MAX_PLAYERS; i ++)
 		{
 		    if (IsPlayerConnected(i) && !SSCANF_IsConnected(i))
 		    {
-		        GetPlayerName(i, name, MAX_PLAYER_NAME);
+		        GetPlayerName(i, name, sizeof(name));
 		        SSCANF_Join(i, name, IsPlayerNPC(i));
 		    }
 		}
-		
+
 		#if defined SSCANF_OnFilterScriptInit
 			SSCANF_OnFilterScriptInit();
 		#endif
@@ -184,17 +184,17 @@ static stock
 		if (!SSCANF_gInit)
 		{
 		    new
-		        name[MAX_PLAYER_NAME];
-		
+		        name[MAX_PLAYER_NAME + 1];
+
 			SSCANF_Init(GetMaxPlayers(), INVALID_PLAYER_ID, MAX_PLAYER_NAME);
 			SSCANF_gInit = true;
-			
+
 			// Check if there are any players that aren't initialized.
 			for (new i = 0; i < MAX_PLAYERS; i ++)
 			{
 			    if (IsPlayerConnected(i) && !SSCANF_IsConnected(i))
 			    {
-			        GetPlayerName(i, name, MAX_PLAYER_NAME);
+			        GetPlayerName(i, name, sizeof(name));
 			        SSCANF_Join(i, name, IsPlayerNPC(i));
 			    }
 			}
@@ -227,8 +227,8 @@ static stock
 	public OnPlayerConnect(playerid)
 	{
 		new
-			name[MAX_PLAYER_NAME];
-		GetPlayerName(playerid, name, sizeof (name));
+			name[MAX_PLAYER_NAME + 1];
+		GetPlayerName(playerid, name, sizeof(name));
 		SSCANF_Join(playerid, name, IsPlayerNPC(playerid));
 		#if defined SSCANF_OnPlayerConnect
 			SSCANF_OnPlayerConnect(playerid);

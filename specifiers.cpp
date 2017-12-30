@@ -347,6 +347,7 @@ bool
 		char
 			tmp = *end,
 			* name = GetNames();
+		name += start * g_iMaxPlayerName;
 		*end = '\0';
 		switch (gOptions & 6)
 		{
