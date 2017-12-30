@@ -347,7 +347,7 @@ SSCANF:weapon(string[])
 			{30, -1}, // a
 			{1, 5, -1}, // b
 			{9, 15, 27, 43, -1}, // c
-			{24, 40, -1}, // d
+			{40, 24, -1}, // d
 			{-1}, // e
 			{42, 37, 14, 0, -1}, // f
 			{2, 16, -1}, // g
@@ -362,7 +362,7 @@ SSCANF:weapon(string[])
 			{46, 22, 7, 10, -1}, // p
 			{-1}, // q
 			{33, 35, -1}, // r
-			{39, 26, 25, 6, 23, 34, 41}, // s
+			{39, 26, 6, 25, 41, 23, 34}, // s
 			{17, 32, 45, -1}, // t
 			{0, 28, -1}, // u
 			{-1}, // v
@@ -413,7 +413,7 @@ SSCANF:weapon(string[])
 			{"Spr", -1, -1}, // 41
 			{"Fir", "FE", -1}, // 42
 			{"Cam", -1, -1}, // 43
-			{"Nig", "NVG", -1}, // 44
+			{"Nightvision", "NVG", -1}, // 44
 			{"The", "TG", -1}, // 45
 			{"Par", -1, -1} // 46
 		};
@@ -712,10 +712,11 @@ SSCANF:vehicle(string[])
 	}
 
 	for (i = 0; i < sizeof(vehicle_ids[]); i++) {
-		vehicle_id = vehicle_ids[id_index][i] - 400;
-		if (vehicle_id == -1) {
+		if (vehicle_ids[id_index][i] == -1) {
 			break;
 		}
+
+		vehicle_id = vehicle_ids[id_index][i] - 400;
 
 		for (j = 0; j < sizeof(vehicle_names[]); j++) {
 			if (vehicle_names[vehicle_id][j][0] == -1) {
