@@ -17,5 +17,8 @@
             "includes": ["."],
             "plugins": ["plugins/sscanf.dll"]
         }
-    ]
+    ],
+    "runtime": {
+        "plugins": ["maddinat0r/sscanf"]
+    }
 }
