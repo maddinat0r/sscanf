@@ -27,6 +27,12 @@
  *      SA:MP Team past, present and future
  */
 
+#if !defined _INC_SSCANF
+	#define _INC_SSCANF
+#else
+	#endinput
+#endif
+
 #if defined _inc_a_npc
 	#pragma library sscanf
 #elseif !defined _samp_included
