@@ -404,3 +404,15 @@ bool
 	// Check if *st2 is null.
 	return IsEnd(*st2);
 }
+
+const char *
+	FindFirstOf(const char *str, char ch)
+{
+	while (*str != '\0')
+	{
+		if (*str == ch)
+			return str;
+		str++;
+	}
+	return str;
+}

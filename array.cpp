@@ -106,7 +106,7 @@ void
 	GetJaggedSlot(cell *, int, int, int, cell **, int *);
 
 bool
-	DoK(AMX * amx, char ** defaults, char ** input, cell * cptr, bool optional);
+	DoK(AMX * amx, char ** defaults, char ** input, cell * cptr, bool optional, bool all);
 
 extern AMX *
 	g_aCurAMX;
@@ -392,14 +392,10 @@ int
 		case '?':
 			logprintf("sscanf error: Options are not supported in arrays.");
 			return SSCANF_FAIL_RETURN;
-		case 'K':
-			DX(double, K)
-			// FALLTHROUGH
 		case 'k':
-			//DOF(double, K)
 			if (defaults)
 			{
-				if (DoK(g_aCurAMX, &type, &string, cptr, false) && cptr)
+				if (DoK(g_aCurAMX, &type, &string, cptr, false, true) && cptr)
 				{
 					while (++count < length)
 					{
@@ -412,7 +408,8 @@ int
 			{
 				char *
 					f = type;
-				while (count < length && *string && DoK(g_aCurAMX, &f, &string, cptr, false))
+				while (count < length && *string && DoK(
+					g_aCurAMX, &f, &string, cptr, false, wholeString && count == length - 1))
 				{
 					if (cptr) ++cptr;
 					SkipOneSpacer(&string);
@@ -599,6 +596,10 @@ bool
 			OPTIONAL_INVALID;
 			*type = 's';
 			break;
+		case 'K':
+			OPTIONAL_INVALID;
+			*type = 'k';
+			break;
 	}
 	if (optional)
 	{
@@ -642,7 +643,7 @@ bool
 DoA_after_loop:
 			if (**defaults)
 			{
-				if (opts == *defaults && *type != 's')
+				if (opts == *defaults && *type != 's'&& *type != 'k')
 				{
 					// No defaults found.
 					logprintf("sscanf warning: Empty default values.");
@@ -676,7 +677,7 @@ DoA_after_loop:
 		{
 			// Optional parameters are always separated by commans, not
 			// whatever the coder may choose.
-			if (*type == 's') TempDelimiter(")");
+			if (*type == 's' || *type == 'k') TempDelimiter(")");
 			else TempDelimiter(",)");
 			if (DoArrayValues(type, &opts, cptr, length, true, false) == SSCANF_FAIL_RETURN)
 			{
@@ -687,7 +688,8 @@ DoA_after_loop:
 		}
 		if (input)
 		{
-			switch (DoArrayValues(type, input, cptr, length, false, *type == 's' && (IsEnd(**defaults) || (!cptr && **defaults == '}' && IsEnd(*(*defaults + 1))))))
+			switch (DoArrayValues(type, input, cptr, length, false, 
+				(*type == 's' || *type == 'k') && (IsEnd(**defaults) || (!cptr && **defaults == '}' && IsEnd(*(*defaults + 1))))))
 			{
 				case SSCANF_CONT_RETURN:
 					if (optional)

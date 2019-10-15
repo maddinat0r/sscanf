@@ -7,14 +7,14 @@
             "name": "^sscanf-(.+)-linux.tar.gz$",
             "platform": "linux",
             "archive": true,
-            "includes": ["."],
+            "includes": ["pawno/include"],
             "plugins": ["plugins/sscanf.so"]
         },
         {
             "name": "^sscanf-(.*)-win32.zip$",
             "platform": "windows",
             "archive": true,
-            "includes": ["."],
+            "includes": ["pawno/include"],
             "plugins": ["plugins/sscanf.dll"]
         }
     ],
