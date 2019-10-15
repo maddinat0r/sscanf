@@ -83,7 +83,7 @@ extern int
 	gOptions;
 
 bool
-	DoK(AMX * amx, char ** defaults, char ** input, cell * cptr, bool optional);
+	DoK(AMX * amx, char ** defaults, char ** input, cell * cptr, bool optional, bool all);
 
 int
 	DoEnumValues(char * format, char ** input, cell * cptr, bool defaults)
@@ -240,7 +240,7 @@ int
 					}
 					else if (doSave)
 					{
-						if (DoK(g_aCurAMX, &format, &string, cptr, false))
+						if (DoK(g_aCurAMX, &format, &string, cptr, false, false))
 						{
 							*(format - 1) = '>';
 							++cptr;
@@ -249,7 +249,7 @@ int
 					}
 					else
 					{
-						if (DoK(g_aCurAMX, &format, &string, NULL, false))
+						if (DoK(g_aCurAMX, &format, &string, NULL, false, false))
 						{
 							*(format - 1) = '>';
 							break;
@@ -258,7 +258,7 @@ int
 					*input = string;
 					return SSCANF_FAIL_RETURN;
 				case 'Z':
-					logprintf("sscanf warning: 'Z' doesn't exist - that would be an optional, deprecated optional string!.");
+					logprintf("sscanf warning: 'Z' doesn't exist - that would be an optional, deprecated optional string!");
 					// FALLTHROUGH
 				case 'z':
 					logprintf("sscanf warning: 'z' is deprecated, consider using 'S' instead.");

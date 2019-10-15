@@ -168,7 +168,7 @@ AMX *
 	SkipDefault(&format);
 
 bool
-	DoK(AMX * amx, char ** defaults, char ** input, cell * cptr, bool optional);
+	DoK(AMX * amx, char ** defaults, char ** input, cell * cptr, bool optional, bool all);
 
 void
 	DoOptions(char *, cell);
@@ -808,11 +808,20 @@ static cell AMX_NATIVE_CALL
 					RestoreOpts(defaultOpts);
 					return SSCANF_FAIL_RETURN;
 				case 'K':
+				{
+					const char *first_closing_lace = FindFirstOf(format, '>');
+					const char *first_closing_bracket = FindFirstOf(format, ')');
+					const char *after_spec = (first_closing_lace < first_closing_bracket) 
+						? first_closing_bracket : first_closing_lace;
+					if (*after_spec != '\0')
+						after_spec += 1;
+					bool consume_all = IsEnd(*after_spec)
+						|| (!doSave && *after_spec == '}' && IsEnd(*(after_spec + 1)));
 					// We need the default values here.
 					if (doSave)
 					{
 						amx_GetAddr(amx, params[paramPos++], &cptr);
-						if (DoK(amx, &format, &string, cptr, true))
+						if (DoK(amx, &format, &string, cptr, true, consume_all))
 						{
 							break;
 						}
@@ -820,18 +829,23 @@ static cell AMX_NATIVE_CALL
 					else
 					{
 						// Pass a NULL pointer so data isn't saved anywhere.
-						if (DoK(amx, &format, &string, NULL, true))
+						if (DoK(amx, &format, &string, NULL, true, consume_all))
 						{
 							break;
 						}
 					}
 					RestoreOpts(defaultOpts);
 					return SSCANF_FAIL_RETURN;
+				}
 				case 'k':
+				{
+					const char *after_spec = FindFirstOf(format, '>') + 1;
+					bool consume_all = IsEnd(*after_spec)
+						|| (!doSave && *after_spec == '}' && IsEnd(*(after_spec + 1)));
 					if (doSave)
 					{
 						amx_GetAddr(amx, params[paramPos++], &cptr);
-						if (DoK(amx, &format, &string, cptr, false))
+						if (DoK(amx, &format, &string, cptr, false, consume_all))
 						{
 							break;
 						}
@@ -839,13 +853,14 @@ static cell AMX_NATIVE_CALL
 					else
 					{
 						// Pass a NULL pointer so data isn't saved anywhere.
-						if (DoK(amx, &format, &string, NULL, false))
+						if (DoK(amx, &format, &string, NULL, false, consume_all))
 						{
 							break;
 						}
 					}
 					RestoreOpts(defaultOpts);
 					return SSCANF_FAIL_RETURN;
+				}
 				case '\'':
 					// Find the end of the literal.
 					{
@@ -1057,7 +1072,7 @@ static cell AMX_NATIVE_CALL
 					if (doSave)
 					{
 						amx_GetAddr(amx, params[paramPos++], &cptr);
-						if (DoK(amx, &format, NULL, cptr, true))
+						if (DoK(amx, &format, NULL, cptr, true, false))
 						{
 							break;
 						}
@@ -1067,7 +1082,7 @@ static cell AMX_NATIVE_CALL
 						// Pass a NULL pointer so data isn't saved anywhere.
 						// Also pass NULL data so it knows to only collect the
 						// default values.
-						if (DoK(amx, &format, NULL, NULL, true))
+						if (DoK(amx, &format, NULL, NULL, true, false))
 						{
 							break;
 						}
@@ -1291,8 +1306,8 @@ PLUGIN_EXPORT bool PLUGIN_CALL
 	logprintf("\n");
 	logprintf(" ===============================\n");
 	logprintf("      sscanf plugin loaded.     \n");
-	logprintf("         Version:  2.8.2        \n");
-	logprintf("   (c) 2012 Alex \"Y_Less\" Cole  \n");
+	logprintf("         Version:  2.8.3        \n");
+	logprintf("  (c) 2018 Alex \"Y_Less\" Cole  \n");
 	logprintf(" ===============================\n");
 	
 	// Determine server version.  Ideally we would use a feature check, such as

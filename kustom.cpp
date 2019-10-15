@@ -16,7 +16,7 @@ extern int
 	gOptions;
 
 bool
-	DoK(AMX * amx, char ** defaults, char ** input, cell * cptr, bool optional)
+	DoK(AMX * amx, char ** defaults, char ** input, cell * cptr, bool optional, bool all)
 {
 	// First, get the type of the array.
 	char *
@@ -160,7 +160,7 @@ bool
 			* start = string;
 		if (IsDefaultDelimiter())
 		{
-			while (!IsWhitespace(*string))
+			while ((all && !IsEnd(*string)) || !IsWhitespace(*string))
 			{
 				if (*string == '\\')
 				{
@@ -189,7 +189,7 @@ bool
 			// a delimiter and still expect to be able to use it in a string.  I
 			// suppose that technically you could see this as a bug, but I
 			// choose to call it an undesirable feature (no-one has complained).
-			while (!IsEnd(*string) && !IsDelimiter(*string))
+			while (!IsEnd(*string) && (all || !IsDelimiter(*string)))
 			{
 				if (*string == '\\')
 				{

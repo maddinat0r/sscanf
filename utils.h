@@ -112,3 +112,6 @@ void
 
 bool
 	strichecks(char * st1, const char * st2);
+
+const char *
+	FindFirstOf(const char *str, char ch);
