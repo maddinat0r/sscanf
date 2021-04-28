@@ -873,7 +873,7 @@ bool
 	if (i >= *length)
 	{
 		logprintf("sscanf warning: String buffer overflow.");
-		*(ret + (*length - 1)) = '\0';
+		*(*ret + (*length - 1)) = '\0';
 	}
 	else
 	{
