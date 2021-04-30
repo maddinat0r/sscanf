@@ -1,7 +1,7 @@
 {
-    "user": "maddinat0r",
+    "user": "Y-Less",
     "repo": "sscanf",
-    "contributors": ["Y_Less", "Emmet_"],
+    "contributors": ["Y_Less", "Emmet_", "maddinat0r"],
     "resources": [
         {
             "name": "^sscanf-(.+)-linux.tar.gz$",
@@ -19,6 +19,6 @@
         }
     ],
     "runtime": {
-        "plugins": ["maddinat0r/sscanf"]
+        "plugins": ["Y-Less/sscanf"]
     }
 }

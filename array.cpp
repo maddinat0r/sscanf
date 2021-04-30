@@ -1,100 +1,116 @@
-/*  
+/*
+ *  sscanf 2.10.3
+ *
  *  Version: MPL 1.1
- *  
- *  The contents of this file are subject to the Mozilla Public License Version 
- *  1.1 (the "License"); you may not use this file except in compliance with 
- *  the License. You may obtain a copy of the License at 
+ *
+ *  The contents of this file are subject to the Mozilla Public License Version
+ *  1.1 (the "License"); you may not use this file except in compliance with
+ *  the License. You may obtain a copy of the License at
  *  http://www.mozilla.org/MPL/
- *  
+ *
  *  Software distributed under the License is distributed on an "AS IS" basis,
  *  WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
  *  for the specific language governing rights and limitations under the
  *  License.
- *  
+ *
  *  The Original Code is the sscanf 2.0 SA:MP plugin.
- *  
+ *
  *  The Initial Developer of the Original Code is Alex "Y_Less" Cole.
- *  Portions created by the Initial Developer are Copyright (C) 2010
+ *  Portions created by the Initial Developer are Copyright (C) 2020
  *  the Initial Developer. All Rights Reserved.
- *  
+ *
  *  Contributor(s):
- *  
+ *
+ *      Cheaterman
+ *      Emmet_
+ *      karimcambridge
+ *      leHeix
+ *      maddinat0r
+ *      Southclaws
+ *      Y_Less
+ *      ziggi
+ *
  *  Special Thanks to:
- *  
- *  SA:MP Team past, present and future
+ *
+ *      SA:MP Team past, present, and future.
+ *      maddinat0r, for hosting the repo for a very long time.
+ *      Emmet_, for his efforts in maintaining it for almost a year.
  */
 
 #include <stdio.h>
 
-#include "SDK/amx/amx.h"
-
-#include "utils.h"
-#include "specifiers.h"
-#include "data.h"
 #include "sscanf.h"
+#include "args.h"
+#include "utils.h"
+#include "data.h"
+#include "specifiers.h"
 
 extern logprintf_t
 	logprintf;
 
-#define SAVE_VALUE(m)            \
-	if (cptr)                    \
+#define GET_CPTR()                      \
+	if (doSave)                         \
+		cptr = args.Next()
+
+#define SAVE_VALUE(m)                   \
+	if (doSave)                         \
 		*cptr++ = m
 
-#define SAVE_VALUE_F(m)          \
-	if (cptr) {                  \
-		float f = (float)m;      \
+#define SAVE_VALUE_F(m)                 \
+	if (doSave) {                       \
+		float f = (float)m;             \
 		*cptr++ = amx_ftoc(f); }
 
-#define UPDATE_VALUES(m)         \
-	if (defaults) {              \
-		if (count) {             \
-			diff.c = m - last.c; \
-			last.c = m;          \
-		} else {                 \
-			last.c = m;          \
-			diff.c = 0; } }      \
-	SkipOneSpacer(&string);      \
+#define UPDATE_VALUES(m)                \
+	if (defaults) {                     \
+		if (count) {                    \
+			diff.c = m - last.c;        \
+			last.c = m;                 \
+		} else {                        \
+			last.c = m;                 \
+			diff.c = 0; } }             \
+	SkipOneSpacer(&string);             \
 	++count
 
-#define UPDATE_VALUES_F(m)       \
-	if (defaults) {              \
-		if (count) {             \
-			diff.d = m - last.d; \
-			last.d = m;          \
-		} else {                 \
-			last.d = m;          \
-			diff.d = 0; } }      \
-	SkipOneSpacer(&string);      \
+#define UPDATE_VALUES_F(m)              \
+	if (defaults) {                     \
+		if (count) {                    \
+			diff.d = m - last.d;        \
+			last.d = m;                 \
+		} else {                        \
+			last.d = m;                 \
+			diff.d = 0; } }             \
+	SkipOneSpacer(&string);             \
 	++count
 
 #define DO_LOOP(n)                                 \
 	count < length && *string && Do##n(&string, &b)
 
 // Macros for the regular values.
-#define DO(m,n)                     \
-	{m b;                           \
-	while (DO_LOOP(n)) {            \
-		SAVE_VALUE((cell)b);        \
-		UPDATE_VALUES((cell)b); } } \
+#define DO(m,n)                         \
+	{ m b; GET_CPTR();                  \
+	while (DO_LOOP(n)) {                \
+		SAVE_VALUE((cell)b);            \
+		UPDATE_VALUES((cell)b); } }     \
 	break;
 
 #define DOV(m,n)                        \
-	{m b;                               \
+	{ m b; GET_CPTR();                  \
 	while (count < length && *string) { \
 		Do##n(&string, &b);             \
 		SAVE_VALUE((cell)b);            \
 		UPDATE_VALUES((cell)b); } }     \
 	break;
 
-#define DOF(m,n)                \
-	{m b;                       \
-	while (DO_LOOP(n)) {        \
-		SAVE_VALUE_F(b)         \
-		UPDATE_VALUES_F(b); } } \
+#define DOF(m,n)                        \
+	{ m b; GET_CPTR();                  \
+	while (DO_LOOP(n)) {                \
+		SAVE_VALUE_F(b)                 \
+		UPDATE_VALUES_F(b); } }         \
 	break;
 
 #define OPTIONAL_INVALID \
-	logprintf("sscanf warning: Optional types invalid in array specifiers, consider using 'A'.")
+	SscanfWarning("Optional types invalid in array specifiers, consider using 'A'.")
 
 #define DX(m,n) \
 	OPTIONAL_INVALID;
@@ -123,7 +139,7 @@ union update_u
 };
 
 int
-	DoArrayValues(char * type, char ** input, cell * cptr, int length, bool defaults, bool wholeString)
+	DoArrayValues(char * type, char ** input, struct args_s & args, int length, bool defaults, bool wholeString, bool doSave)
 {
 	int
 		count = 0;
@@ -134,6 +150,8 @@ int
 	diff.d = 0;
 	char *
 		string = *input;
+	cell *
+		cptr = NULL;
 	switch (*type++)
 	{
 		// Copied directly from the main loop, just with different macros.
@@ -147,6 +165,7 @@ int
 				// will just end up with larger values of true.
 				bool
 					b;
+				GET_CPTR();
 				while (count < length && *string)
 				{
 					DoL(&string, &b);
@@ -189,6 +208,11 @@ int
 		case 'h':
 		case 'x':
 			DO(int, H)
+		case 'M':
+			DX(unsigned int, M)
+			// FALLTHROUGH
+		case 'm':
+			DO(unsigned int, M)
 		case 'O':
 			DX(int, O)
 			// FALLTHROUGH
@@ -206,11 +230,12 @@ int
 			{
 				double
 					b;
+				GET_CPTR();
 				while (DO_LOOP(G))
 				{
 					float
 						f = (float)b;
-					if (cptr)
+					if (doSave)
 					{
 						*cptr++ = amx_ftoc(f);
 					}
@@ -246,10 +271,11 @@ int
 		case 'u':
 			if (*type == '[')
 			{
-				logprintf("sscanf warning: User arrays are not supported in arrays.");
+				SscanfWarning("User arrays are not supported in arrays.");
 			}
 			if (defaults)
 			{
+				GET_CPTR();
 				if (gOptions & 1)
 				{
 					int
@@ -292,10 +318,11 @@ int
 		case 'q':
 			if (*type == '[')
 			{
-				logprintf("sscanf warning: User arrays are not supported in arrays.");
+				SscanfWarning("User arrays are not supported in arrays.");
 			}
 			if (defaults)
 			{
+				GET_CPTR();
 				if (gOptions & 1)
 				{
 					int
@@ -338,10 +365,11 @@ int
 		case 'r':
 			if (*type == '[')
 			{
-				logprintf("sscanf warning: User arrays are not supported in arrays.");
+				SscanfWarning("User arrays are not supported in arrays.");
 			}
 			if (defaults)
 			{
+				GET_CPTR();
 				if (gOptions & 1)
 				{
 					int
@@ -380,22 +408,23 @@ int
 			break;
 		case 'A':
 		case 'a':
-			logprintf("sscanf error: Multi-dimensional arrays are not supported.");
+			SscanfError("Multi-dimensional arrays are not supported.");
 			return SSCANF_FAIL_RETURN;
 		case '\'':
-			logprintf("sscanf error: Search strings are not supported in arrays.");
+			SscanfError("Search strings are not supported in arrays.");
 			return SSCANF_FAIL_RETURN;
 		case 'P':
 		case 'p':
-			logprintf("sscanf error: Delimiters are not supported in arrays.");
+			SscanfError("Delimiters are not supported in arrays.");
 			return SSCANF_FAIL_RETURN;
 		case '?':
-			logprintf("sscanf error: Options are not supported in arrays.");
+			SscanfError("Options are not supported in arrays.");
 			return SSCANF_FAIL_RETURN;
 		case 'k':
 			if (defaults)
 			{
-				if (DoK(g_aCurAMX, &type, &string, cptr, false, true) && cptr)
+				GET_CPTR();
+				if (DoK(g_aCurAMX, &type, &string, cptr, false, true) && doSave)
 				{
 					while (++count < length)
 					{
@@ -408,10 +437,10 @@ int
 			{
 				char *
 					f = type;
-				while (count < length && *string && DoK(
-					g_aCurAMX, &f, &string, cptr, false, wholeString && count == length - 1))
+				GET_CPTR();
+				while (count < length && *string && DoK(g_aCurAMX, &f, &string, cptr, false, wholeString && count == length - 1))
 				{
-					if (cptr) ++cptr;
+					if (doSave) ++cptr;
 					SkipOneSpacer(&string);
 					++count;
 					*(f - 1) = '>';
@@ -420,7 +449,7 @@ int
 			}
 			break;
 		case 's':
-			//logprintf("sscanf error: Strings are not supported in arrays.");
+			//SscanfError("Strings are not supported in arrays.");
 			// Now they are (or rather, now I would like them to be, I've not
 			// actually WRITTEN the code yet...).
 			// This code has to read the memory pointed to by "cptr", which for
@@ -430,16 +459,15 @@ int
 			// the array specifier, and can thus support jagged arrays!
 			if (defaults)
 			{
-				//char *
-				//	lt = type + 1;
 				int
-					nl = GetLength(&type, false),
+					nl = GetLength(&type, args),
 					sl;
 				char *
 					dest;
 				// Parse the default string.
 				DoS(&string, &dest, 0x7FFFFFFF, true);
-				if (cptr)
+				GET_CPTR();
+				if (doSave)
 				{
 					cell *
 						sptr;
@@ -458,16 +486,15 @@ int
 			else
 			{
 				// Get the length.
-				//char *
-				//	lt = type;
 				int
-					nl = GetLength(&type, false),
+					nl = GetLength(&type, args),
 					sl;
 				char *
 					dest;
+				GET_CPTR();
 				while (count < length && *string)
 				{
-					if (cptr)
+					if (doSave)
 					{
 						cell *
 							sptr;
@@ -489,12 +516,80 @@ int
 				break;
 			}
 			//return SSCANF_FAIL_RETURN;
+		case 'z':
+			//SscanfError("Strings are not supported in arrays.");
+			// Now they are (or rather, now I would like them to be, I've not
+			// actually WRITTEN the code yet...).
+			// This code has to read the memory pointed to by "cptr", which for
+			// a multi-dimensional array points to the array header and from
+			// which we can actually read the array lengths.  Note that this
+			// actually means that we don't need to include the string length in
+			// the array specifier, and can thus support jagged arrays!
+			if (defaults)
+			{
+				int
+					nl = GetLength(&type, args),
+					sl;
+				char *
+					dest;
+				// Parse the default string.
+				DoS(&string, &dest, 0x7FFFFFFF, true);
+				GET_CPTR();
+				if (doSave)
+				{
+					cell *
+						sptr;
+					// Send the string to PAWN.
+					while (count < length)
+					{
+						// Get the true address as offset from the array
+						// base address, and its length.
+						GetJaggedSlot(cptr, length, nl, count, &sptr, &sl);
+						amx_SetString(sptr, dest, 1, 0, sl);
+						++count;
+					}
+				}
+				break;
+			}
+			else
+			{
+				// Get the length.
+				int
+					nl = GetLength(&type, args),
+					sl;
+				char *
+					dest;
+				GET_CPTR();
+				while (count < length && *string)
+				{
+					if (doSave)
+					{
+						cell *
+							sptr;
+						// Get the true address as offset from the array
+						// base address, and its length.
+						GetJaggedSlot(cptr, length, nl, count, &sptr, &sl);
+						//printf("%d %d\n", nl, sl);
+						//printf("%d %d %d", cptr, sptr, sl);
+						DoS(&string, &dest, sl, wholeString && count == length - 1);
+						amx_SetString(sptr, dest, 1, 0, sl);
+					}
+					else
+					{
+						DoS(&string, &dest, 0x7FFFFFFF, wholeString && count == length - 1);
+					}
+					SkipOneSpacer(&string);
+					++count;
+				}
+				break;
+			}
+			//return SSCANF_FAIL_RETURN;
 		case '{':
 		case '}':
-			logprintf("sscanf error: Quiet sections are not supported in arrays.");
+			SscanfError("Quiet sections are not supported in arrays.");
 			return SSCANF_FAIL_RETURN;
 		default:
-			logprintf("sscanf error: Unknown format specifier '%c'.", *(type - 1));
+			SscanfError("Unknown format specifier '%c'.", *(type - 1));
 			return SSCANF_FAIL_RETURN;
 	}
 	// Save the end of the string.
@@ -506,7 +601,7 @@ int
 			if (*string)
 			{
 				// Error in format specifier.
-				logprintf("sscanf warning: Invalid values in array defaults.");
+				SscanfWarning("Invalid values in array defaults.");
 			}
 			else
 			{
@@ -528,6 +623,7 @@ int
 					case 'K':
 					case 'k':
 					case 's':
+					case 'z':
 						// There is no "progression" in optional strings - you
 						// specify one and JUST one!
 						break;
@@ -549,7 +645,7 @@ int
 		}
 		else if (*string)
 		{
-			logprintf("sscanf warning: Excess array defaults found.");
+			SscanfWarning("Excess array defaults found.");
 		}
 	}
 	else
@@ -573,7 +669,7 @@ int
 }
 
 bool
-	DoA(char ** defaults, char ** input, cell * cptr, bool optional)
+	DoA(char ** defaults, char ** input, struct args_s & args, bool optional, bool doSave)
 {
 	// First, get the type of the array.
 	bool
@@ -584,17 +680,13 @@ bool
 	if (!type) return false;
 	switch (*type)
 	{
-		case 'Z':
-			// Don't even THINK about using "Z" - you will get THREE error
-			// messages telling you off, "z" will give you 2, and "S" just 1.
-			logprintf("sscanf warning: 'Z' doesn't exist - that would be an optional, deprecated optional string!.");
-			// FALLTHROUGH
-		case 'z':
-			logprintf("sscanf warning: 'z' is deprecated, consider using 'S' instead.");
-			// FALLTHROUGH
 		case 'S':
 			OPTIONAL_INVALID;
 			*type = 's';
+			break;
+		case 'Z':
+			OPTIONAL_INVALID;
+			*type = 'z';
 			break;
 		case 'K':
 			OPTIONAL_INVALID;
@@ -643,10 +735,10 @@ bool
 DoA_after_loop:
 			if (**defaults)
 			{
-				if (opts == *defaults && *type != 's'&& *type != 'k')
+				if (opts == *defaults && !(*type == 's' || *type == 'z' || *type == 'k'))
 				{
 					// No defaults found.
-					logprintf("sscanf warning: Empty default values.");
+					SscanfWarning("Empty default values.");
 					optional = false;
 				}
 				// Found a valid end.  Make it null for
@@ -658,18 +750,21 @@ DoA_after_loop:
 			}
 			else
 			{
-				logprintf("sscanf warning: Unclosed default value.");
+				SscanfWarning("Unclosed default value.");
 			}
 		}
 		else
 		{
-			logprintf("sscanf warning: No default value found.");
+			SscanfWarning("No default value found.");
 			optional = false;
 		}
 	}
-	// GetLength has "true" as arrays, being new, MUST have lengths.
 	int
-		length = GetLength(defaults, true);
+		length = GetLength(defaults, args);
+	// We MAY need to go over the arguments twice.  Once to insert defaults, once for real values.
+	// If we mark here and restore at the start of normal data it doesn't matter if we got defaults
+	// or not - if so this is correct, if not the mark/restore won't change anything.
+	args.Mark();
 	if (length)
 	{
 		// Got the length of the array, it's all good.
@@ -677,9 +772,9 @@ DoA_after_loop:
 		{
 			// Optional parameters are always separated by commans, not
 			// whatever the coder may choose.
-			if (*type == 's' || *type == 'k') TempDelimiter(")");
+			if ((*type == 's' || *type == 'z' || *type == 'k')) TempDelimiter(")");
 			else TempDelimiter(",)");
-			if (DoArrayValues(type, &opts, cptr, length, true, false) == SSCANF_FAIL_RETURN)
+			if (DoArrayValues(type, &opts, args, length, true, false, doSave) == SSCANF_FAIL_RETURN)
 			{
 				RestoreDelimiter();
 				return false;
@@ -688,8 +783,8 @@ DoA_after_loop:
 		}
 		if (input)
 		{
-			switch (DoArrayValues(type, input, cptr, length, false, 
-				(*type == 's' || *type == 'k') && (IsEnd(**defaults) || (!cptr && **defaults == '}' && IsEnd(*(*defaults + 1))))))
+			args.Restore();
+			switch (DoArrayValues(type, input, args, length, false, (*type == 's' || *type == 'z' || *type == 'k') && (IsEnd(**defaults) || (!doSave && **defaults == '}' && IsEnd(*(*defaults + 1)))), doSave))
 			{
 				case SSCANF_CONT_RETURN:
 					if (optional)

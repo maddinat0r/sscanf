@@ -1,32 +1,44 @@
-/*  
+/*
+ *  sscanf 2.10.3
+ *
  *  Version: MPL 1.1
- *  
- *  The contents of this file are subject to the Mozilla Public License Version 
- *  1.1 (the "License"); you may not use this file except in compliance with 
- *  the License. You may obtain a copy of the License at 
+ *
+ *  The contents of this file are subject to the Mozilla Public License Version
+ *  1.1 (the "License"); you may not use this file except in compliance with
+ *  the License. You may obtain a copy of the License at
  *  http://www.mozilla.org/MPL/
- *  
+ *
  *  Software distributed under the License is distributed on an "AS IS" basis,
  *  WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
  *  for the specific language governing rights and limitations under the
  *  License.
- *  
+ *
  *  The Original Code is the sscanf 2.0 SA:MP plugin.
- *  
+ *
  *  The Initial Developer of the Original Code is Alex "Y_Less" Cole.
- *  Portions created by the Initial Developer are Copyright (C) 2010
+ *  Portions created by the Initial Developer are Copyright (C) 2020
  *  the Initial Developer. All Rights Reserved.
- *  
+ *
  *  Contributor(s):
- *  
+ *
+ *      Cheaterman
+ *      Emmet_
+ *      karimcambridge
+ *      leHeix
+ *      maddinat0r
+ *      Southclaws
+ *      Y_Less
+ *      ziggi
+ *
  *  Special Thanks to:
- *  
- *  SA:MP Team past, present and future
+ *
+ *      SA:MP Team past, present, and future.
+ *      maddinat0r, for hosting the repo for a very long time.
+ *      Emmet_, for his efforts in maintaining it for almost a year.
  */
 
-#include "SDK/amx/amx.h"
-
 #include "sscanf.h"
+#include "args.h"
 #include "utils.h"
 
 extern unsigned int
@@ -60,18 +72,39 @@ void
 //    Disable all prints.
 //  
 int
+	gAlpha = 0xFF,
+	gForms = -1,
 	gOptions = 0;
+	
+cell * args_s::Next()
+{
+	cell * cptr;
+	amx_GetAddr(Amx, Params[Pos++], &cptr);
+	return cptr;
+};
+
+void args_s::Mark()
+{
+	Marker = Pos;
+};
+
+void args_s::Restore()
+{
+	Pos = Marker;
+};
 
 void
-	RestoreOpts(int opt)
+	RestoreOpts(int opt, int alpha, int forms)
 {
 	gOptions = opt;
+	gAlpha = alpha;
+	gForms = forms;
 	if (gOptions & 8) logprintf = qlog;
 	else logprintf = real_logprintf;
 }
 
 void
-	DoOptions(char * name, cell value)
+	SetOptions(char * name, cell value)
 {
 	// Not the most flexible code I've ever written...
 	if (!strincmp(name, "OLD_DEFAULT_NAME", 16))
@@ -92,7 +125,7 @@ void
 				}
 				else
 				{
-					logprintf("sscanf error: No option value.");
+					SscanfError("No option value.");
 				}
 		}
 	}
@@ -114,7 +147,7 @@ void
 				}
 				else
 				{
-					logprintf("sscanf error: No option value.");
+					SscanfError("No option value.");
 				}
 		}
 	}
@@ -136,7 +169,7 @@ void
 				}
 				else
 				{
-					logprintf("sscanf error: No option value.");
+					SscanfError("No option value.");
 				}
 		}
 	}
@@ -168,9 +201,21 @@ void
 				}
 				else
 				{
-					logprintf("sscanf error: No option value.");
+					SscanfError("No option value.");
 				}
 		}
+	}
+	else if (!strincmp(name, "SSCANF_ALPHA", 12))
+	{
+		gAlpha = (value & 0xFF) | (gAlpha & 0xFFFFFF00);
+	}
+	else if (!strincmp(name, "SSCANF_COLOUR_FORMS", 19))
+	{
+		gForms = value;
+	}
+	else if (!strincmp(name, "SSCANF_ARGB", 11))
+	{
+		gAlpha = (gAlpha & 0xFF) | (value ? 0x100 : 0);
 	}
 	else if (!strincmp(name, "OLD_DEFAULT_KUSTOM", 18) || !strincmp(name, "OLD_DEFAULT_CUSTOM", 18))
 	{
@@ -190,14 +235,57 @@ void
 				}
 				else
 				{
-					logprintf("sscanf error: No option value.");
+					SscanfError("No option value.");
 				}
 		}
 	}
 	else
 	{
-		logprintf("sscanf error: Unknown option name.");
+		SscanfError("Unknown option name.");
 	}
+}
+
+cell
+	GetOptions(char * name)
+{
+	// Not the most flexible code I've ever written...
+	if (!strincmp(name, "OLD_DEFAULT_NAME", 16))
+	{
+		return (gOptions >> 0) & 1;
+	}
+	else if (!strincmp(name, "MATCH_NAME_PARTIAL", 18))
+	{
+		return (gOptions >> 1) & 1;
+	}
+	else if (!strincmp(name, "CELLMIN_ON_MATCHES", 18))
+	{
+		return (gOptions >> 2) & 1;
+	}
+	else if (!strincmp(name, "SSCANF_QUIET", 12))
+	{
+		return (gOptions >> 3) & 1;
+	}
+	else if (!strincmp(name, "SSCANF_ALPHA", 12))
+	{
+		return (gAlpha & 0xFF);
+	}
+	else if (!strincmp(name, "SSCANF_COLOUR_FORMS", 19))
+	{
+		return gForms;
+	}
+	else if (!strincmp(name, "SSCANF_ARGB", 11))
+	{
+		return (gAlpha >> 8) & 1;
+	}
+	else if (!strincmp(name, "OLD_DEFAULT_KUSTOM", 18) || !strincmp(name, "OLD_DEFAULT_CUSTOM", 18))
+	{
+		return (gOptions >> 4) & 1;
+	}
+	else
+	{
+		SscanfError("Unknown option name.");
+	}
+	return -1;
 }
 
 char
@@ -219,28 +307,17 @@ char
 				*format += 3;
 				return ret;
 			}
-			else
-			{
-				logprintf("sscanf warning: Unclosed specifier parameter, assuming '<', consider using something like p<<>.");
-			}
 		}
-		else
-		{
-			logprintf("sscanf warning: Unenclosed specifier parameters are deprecated, consider using something like p<<>.");
-		}
-		++(*format);
-		return '<';
 	}
-	else if (tmp)
+	if (tmp)
 	{
-		// Legacy support.
-		logprintf("sscanf warning: Unenclosed specifier parameters are deprecated, consider using something like p<%c>.", tmp);
+		SscanfError("Unenclosed specifier parameter.", tmp);
 		++(*format);
-		return tmp;
+		return ' ';
 	}
 	else
 	{
-		logprintf("sscanf warning: No specified parameter found.");
+		SscanfWarning("No specified parameter found.");
 		return ' ';
 	}
 }
@@ -298,12 +375,12 @@ char *
 		}
 		else
 		{
-			logprintf("sscanf error: Unclosed specifier parameters.");
+			SscanfError("Unclosed specifier parameters.");
 		}
 	}
 	else
 	{
-		logprintf("sscanf error: No specified parameters found.");
+		SscanfError("No specified parameters found.");
 	}
 	*format = cur;
 	return 0;
@@ -592,6 +669,109 @@ int
 }
 
 unsigned int
+	GetColour(char ** const input, int * type, unsigned int alpha)
+{
+	char *
+		str = *input;
+	char
+		prefix = 0; // `0x` = 1, `{` = 2, `#` = 3, `` = 4, invalid = 0.
+	*type = 0; // Reset.
+	switch (*str)
+	{
+	case '0':
+		if (*(str + 1) == 'x' || *(str + 1) == 'X')
+		{
+			// Check there is real data, otherwise it's bad.
+			str += 2;
+			if ((*str < '0') || ((*str > '9') && ((*str | 0x20) < 'a')) || ((*str | 0x20) > 'f'))
+			{
+				*input = str - 1;
+				return 0;
+			}
+			prefix = 1;
+		}
+		else
+		{
+			prefix = 4;
+		}
+		break;
+	case '{':
+		prefix = 2;
+		++str;
+		break;
+	case '#':
+		prefix = 3;
+		++str;
+		break;
+	default:
+		prefix = 4;
+		break;
+	}
+	// Get the underlying HEX value.
+	*input = str;
+	unsigned int ret = (unsigned int)GetHexValue(input);
+	// Determine the input type.
+	switch (prefix)
+	{
+	case 1:
+		if (*input - str == 6)
+		{
+			*type = 4;
+		}
+		else if (*input - str == 8)
+		{
+			*type = 32;
+			return ret;
+		}
+		break;
+	case 2:
+		if (*input - str == 6 && **input == '}')
+		{
+			++(*input);
+			*type = 16;
+		}
+		break;
+	case 3:
+		if (*input - str == 3)
+		{
+			// Expand out the 3-digit values to 6-digit values.
+			ret =
+				((ret >>  8 & 0x00F) * 0x011 << 16) |
+				((ret >>  4 & 0x00F) * 0x011 <<  8) |
+				((ret >>  0 & 0x00F) * 0x011 <<  0)	;
+			*type = 1;
+		}
+		else if (*input - str == 6)
+		{
+			*type = 2;
+		}
+		break;
+	case 4:
+		if (*input - str == 6)
+		{
+			*type = 8;
+		}
+		else if (*input - str == 8)
+		{
+			*type = 64;
+			return ret;
+		}
+		break;
+	}
+	// Add in the alpha.
+	if (alpha & 0xFFFFFF00)
+	{
+		// ARGB.
+		return ret | (alpha << 24);
+	}
+	else
+	{
+		// RGBA.
+		return (ret << 8) | alpha;
+	}
+}
+
+unsigned int
 	GetBoolValue(char ** const input)
 {
 	char *
@@ -815,7 +995,7 @@ bool
 	}
 	else
 	{
-		logprintf("sscanf warning: No default value found.");
+		SscanfWarning("No default value found.");
 	}
 	return false;
 }
@@ -838,7 +1018,7 @@ void
 		}
 		else
 		{
-			logprintf("sscanf warning: Unclosed default value.");
+			SscanfWarning("Unclosed default value.");
 		}
 	}
 }
@@ -885,12 +1065,12 @@ void
 		}
 		else
 		{
-			logprintf("sscanf warning: Unclosed default value.");
+			SscanfWarning("Unclosed default value.");
 		}
 	}
 	else
 	{
-		logprintf("sscanf warning: No default value found.");
+		SscanfWarning("No default value found.");
 	}
 	*data = str;
 }
@@ -915,36 +1095,50 @@ void
 		// If we get here then the end of the string was reached before the
 		// valid end of the length.
 		*input = str;
-		logprintf("sscanf warning: Missing string length end.");
+		SscanfWarning("Missing string length end.");
 	}
 	else
 	{
-		logprintf("sscanf warning: Arrays without a length are deprecated, please add a destination size.");
+		SscanfError("String/array must include a length, please add a destination size.");
 	}
 }
 
 int
-	GetLength(char ** const input, bool error)
+	GetLength(char ** const input, struct args_s & args)
 {
 	if (**input == '[')
 	{
 		++(*input);
-		int
-			length = GetDec(input);
 		char *
-			str = *input;
-		if (length <= 0)
+			str;
+		int
+			length;
+		bool
+			bracketed = false;
+		if (**input == '(')
 		{
-			if (error)
+			++(*input);
+			bracketed = true;
+		}
+		if (**input == '*')
+		{
+			// Length loaded from a parameter.
+			str = *input + 1;
+			length = *args.Next();
+		}
+		else
+		{
+			length = GetDec(input);
+			str = *input;
+			if (length <= 0)
 			{
 				length = 0;
-				logprintf("sscanf error: Invalid data length.");
+				SscanfError("Invalid data length.");
 			}
-			else
-			{
-				length = SSCANF_MAX_LENGTH;
-				logprintf("sscanf warning: Invalid data length.");
-			}
+		}
+		if (bracketed && *str == ')')
+		{
+			++str;
 		}
 		if (*str == ']')
 		{
@@ -955,7 +1149,7 @@ int
 		else if (*str)
 		{
 			// Invalid character: [numberX]
-			logprintf("sscanf warning: Invalid character in data length.");
+			SscanfWarning("Invalid character in data length.");
 			// Loop through the string till we find an end to the size.
 			while (*(++str))
 			{
@@ -968,19 +1162,14 @@ int
 			}
 		}
 		// Invalid end: [number
-		logprintf("sscanf warning: Missing length end.");
+		SscanfWarning("Missing length end.");
 		*input = str;
 		return length;
 	}
-	else if (error)
-	{
-		logprintf("sscanf error: String/array must include a length, please add a destination size.");
-		return 0;
-	}
 	else
 	{
-		logprintf("sscanf warning: Strings without a length are deprecated, please add a destination size.");
-		return SSCANF_MAX_LENGTH;
+		SscanfError("String/array must include a length, please add a destination size.");
+		return 0;
 	}
 }
 

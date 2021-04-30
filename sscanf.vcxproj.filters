@@ -27,6 +27,7 @@
     <ClInclude Include="specifiers.h" />
     <ClInclude Include="sscanf.h" />
     <ClInclude Include="utils.h" />
+    <ClInclude Include="args.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="SDK\amxplugin.cpp">
@@ -44,7 +45,7 @@
     <ClCompile Include="kustom.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="YSF.def">
+    <None Include="sscanf.def">
       <Filter>amx</Filter>
     </None>
   </ItemGroup>

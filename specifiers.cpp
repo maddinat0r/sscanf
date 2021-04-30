@@ -1,33 +1,46 @@
-/*  
+/*
+ *  sscanf 2.10.3
+ *
  *  Version: MPL 1.1
- *  
- *  The contents of this file are subject to the Mozilla Public License Version 
- *  1.1 (the "License"); you may not use this file except in compliance with 
- *  the License. You may obtain a copy of the License at 
+ *
+ *  The contents of this file are subject to the Mozilla Public License Version
+ *  1.1 (the "License"); you may not use this file except in compliance with
+ *  the License. You may obtain a copy of the License at
  *  http://www.mozilla.org/MPL/
- *  
+ *
  *  Software distributed under the License is distributed on an "AS IS" basis,
  *  WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
  *  for the specific language governing rights and limitations under the
  *  License.
- *  
+ *
  *  The Original Code is the sscanf 2.0 SA:MP plugin.
- *  
+ *
  *  The Initial Developer of the Original Code is Alex "Y_Less" Cole.
- *  Portions created by the Initial Developer are Copyright (C) 2010
+ *  Portions created by the Initial Developer are Copyright (C) 2020
  *  the Initial Developer. All Rights Reserved.
- *  
+ *
  *  Contributor(s):
- *  
+ *
+ *      Cheaterman
+ *      karimcambridge
+ *      leHeix
+ *      maddinat0r
+ *      Southclaws
+ *      Y_Less
+ *      ziggi
+ *
  *  Special Thanks to:
- *  
- *  SA:MP Team past, present and future
+ *
+ *      SA:MP Team past, present, and future.
+ *      maddinat0r, for hosting the repo for a very long time.
+ *      Emmet_, for his efforts in maintaining it for almost a year.
  */
 
 #include <string.h>
 #include <stdlib.h>
 
 #include "sscanf.h"
+#include "args.h"
 #include "utils.h"
 #include "data.h"
 #include "specifiers.h"
@@ -36,6 +49,8 @@ extern logprintf_t
 	logprintf;
 
 extern int
+	gAlpha,
+	gForms,
 	gOptions;
 
 extern unsigned int
@@ -65,6 +80,16 @@ bool
 {
 	*ret = GetHex(input);
 	return GetReturn(input);
+}
+
+bool
+	DoM(char ** input, unsigned int * ret)
+{
+	int type;
+	// Colours.
+	*ret = GetColour(input, &type, gAlpha);
+	// Check the given form is allowed.
+	return (gForms & type) && GetReturn(input);
 }
 
 bool
@@ -203,7 +228,7 @@ bool
 				// there's no point - it's just extra work and we know it's OK.
 				// We set the null before incrementing to ensure it's included
 				// in the output.
-				logprintf("sscanf warning: String buffer overflow.");
+				SscanfWarning("String buffer overflow.");
 				// Removed the break - discard the rest of the string.
 				//break;
 			}
@@ -243,7 +268,7 @@ bool
 			++i;
 			if (i == length)
 			{
-				logprintf("sscanf warning: String buffer overflow.");
+				SscanfWarning("String buffer overflow.");
 			}
 			else if (i < length)
 			{
@@ -278,7 +303,7 @@ bool
 			++i;
 			if (i == length)
 			{
-				logprintf("sscanf warning: String buffer overflow.");
+				SscanfWarning("String buffer overflow.");
 			}
 			else if (i < length)
 			{
@@ -690,6 +715,19 @@ bool
 }
 
 bool
+	DoMD(char ** input, unsigned int * ret)
+{
+	if (!FindDefaultStart(input))
+	{
+		return false;
+	}
+	int type;
+	*ret = GetColour(input, &type, gAlpha);
+	// Don't check the form is specified in defaults.
+	return GetReturnDefault(input);
+}
+
+bool
 	DoOD(char ** input, int * ret)
 {
 	if (!FindDefaultStart(input))
@@ -813,7 +851,7 @@ bool
 }
 
 bool
-	DoSD(char ** input, char ** ret, int * length)
+	DoSD(char ** input, char ** ret, int * length, struct args_s & args)
 {
 	if (!FindDefaultStart(input))
 	{
@@ -859,21 +897,21 @@ bool
 		// Skip the final character.
 		*input = string + 1;
 		// NOW get the length.
-		*length = GetLength(input, false);
+		*length = GetLength(input, args);
 	}
 	else
 	{
-		logprintf("sscanf warning: Unclosed default value.");
+		SscanfWarning("Unclosed default value.");
 		// Save the return.
 		*input = string;
-		logprintf("sscanf warning: Strings without a length are deprecated, please add a destination size.");
-		*length = SSCANF_MAX_LENGTH;
+		SscanfError("String/array must include a length, please add a destination size.");
+		*length = 1;
 	}
 	// Add a null terminator.
 	if (i >= *length)
 	{
-		logprintf("sscanf warning: String buffer overflow.");
-		*(ret + (*length - 1)) = '\0';
+		SscanfWarning("String buffer overflow.");
+		*(*ret + *length - 1) = '\0';
 	}
 	else
 	{

@@ -1,84 +1,51 @@
-/*  
+/*
+ *  sscanf 2.10.3
+ *
  *  Version: MPL 1.1
- *  
- *  The contents of this file are subject to the Mozilla Public License Version 
- *  1.1 (the "License"); you may not use this file except in compliance with 
- *  the License. You may obtain a copy of the License at 
+ *
+ *  The contents of this file are subject to the Mozilla Public License Version
+ *  1.1 (the "License"); you may not use this file except in compliance with
+ *  the License. You may obtain a copy of the License at
  *  http://www.mozilla.org/MPL/
- *  
+ *
  *  Software distributed under the License is distributed on an "AS IS" basis,
  *  WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
  *  for the specific language governing rights and limitations under the
  *  License.
- *  
+ *
  *  The Original Code is the sscanf 2.0 SA:MP plugin.
- *  
+ *
  *  The Initial Developer of the Original Code is Alex "Y_Less" Cole.
- *  Portions created by the Initial Developer are Copyright (C) 2010
+ *  Portions created by the Initial Developer are Copyright (C) 2020
  *  the Initial Developer. All Rights Reserved.
- *  
+ *
  *  Contributor(s):
- *  
+ *
+ *      Cheaterman
+ *      Emmet_
+ *      karimcambridge
+ *      leHeix
+ *      maddinat0r
+ *      Southclaws
+ *      Y_Less
+ *      ziggi
+ *
  *  Special Thanks to:
- *  
- *  SA:MP Team past, present and future
+ *
+ *      SA:MP Team past, present, and future.
+ *      maddinat0r, for hosting the repo for a very long time.
+ *      Emmet_, for his efforts in maintaining it for almost a year.
  */
 
 #pragma once
+
+#include <stdint.h>
 
 typedef
 	void (* logprintf_t)(char *, ...);
 
 typedef
 	char * (* GetServer_t)();
-
-// 0.3 compatible
-/*typedef
-	unsigned short
-	PLAYERID;
-
-#define SERVER_VERSION_0221	(0x0221)
-#define SERVER_VERSION_0222	(0x0222)
-#define SERVER_VERSION_0223	(0x0223)
-#define SERVER_VERSION_0224	(0x0224)
-#define SERVER_VERSION_0200	(0x0200)
-#define SERVER_VERSION_0300	(0x0300)
-#define SERVER_VERSION_0340	(0x0340) // 0.3d
-#define SERVER_VERSION_0342 (0x0342) // 0.3dR2
-
-
-#define MAX_PLAYERS_0200       (200)
-#define INVALID_PLAYER_ID_0200 (255)
-
-// Change after 0.3 real release.
-#define MAX_PLAYERS_0300       (500)
-#define INVALID_PLAYER_ID_0300 (65535)
-
-#define MAX_PLAYER_NAME  (24)
-
-#ifndef NULL
-	#define NULL (0)
-#endif
-
-#ifdef WIN32
-	#define LOGPRINTF_0221	((logprintf_t)0x00476D90)
-	#define LOGPRINTF_0222	((logprintf_t)0x00477020)
-	#define LOGPRINTF_0223	((logprintf_t)3)
-	#define LOGPRINTF_0224	((logprintf_t)0x0046A590)
-	// Change after final release.
-	#define LOGPRINTF_0300  ((logprintf_t)0x00476380)
-	#define LOGPRINTF_0340  ((logprintf_t)0x004823D0) // Maybe 0x004823D0
-	#define LOGPRINTF_0342  ((logprintf_t)0x00482400) // by dnee`THA
-#else
-	#define LOGPRINTF_0221	((logprintf_t)1)
-	#define LOGPRINTF_0222	((logprintf_t)2)
-	#define LOGPRINTF_0223	((logprintf_t)3)
-	#define LOGPRINTF_0224	((logprintf_t)0x0807D760)
-	// Change after final release.
-	#define LOGPRINTF_0300  ((logprintf_t)5)
-	#define LOGPRINTF_0340  ((logprintf_t)0x080765D0)
-	#define LOGPRINTF_0342  ((logprintf_t)0x08076600) // by dnee`THA
-#endif*/
 
 #define SSCANF_FAIL_RETURN (-1)
 #define SSCANF_CONT_RETURN (((unsigned int)-1) >> 1)
@@ -97,3 +64,55 @@ typedef
 #define FLOAT_NEGATIVE_INFINITY (FLOAT_NEG_INFINITY)
 
 #define SSCANF_QUIET 0
+
+//void SscanfWarning(char const *, ...);
+//void SscanfError(char const *, ...);
+
+#define SscanfWarning(str,...) \
+	do																								                    \
+	{																								                    \
+		if (SscanfErrLine()) logprintf("sscanf warning (%s:%d): " #str, gCallFile, gCallLine, ##__VA_ARGS__);           \
+		else logprintf("%s warning (`%s`): " #str, gCallFile, gFormat, ##__VA_ARGS__);		                            \
+	}																								                    \
+	while (0)
+
+#define SscanfError(str,...) \
+	do																						                            \
+	{																						                            \
+		if (SscanfErrLine()) logprintf("sscanf error (%s:%d): " #str, gCallFile, gCallLine, ##__VA_ARGS__);             \
+		else logprintf("%s error (`%s`): " #str, gCallFile, gFormat, ##__VA_ARGS__);	                                \
+	}																						                            \
+	while (0)
+
+bool SscanfErrLine();
+typedef int32_t cell;
+
+extern char
+	* gFormat,
+	* gCallFile;
+
+extern int
+	gCallLine;
+
+extern cell
+	* gCallResolve;
+
+#if defined __cplusplus
+	#define PAWN_NATIVE_EXTERN extern "C"
+#else
+	#define PAWN_NATIVE_EXTERN extern
+#endif
+
+#if defined _WIN32 || defined __CYGWIN__
+	#define PAWN_NATIVE_DLLEXPORT __declspec(dllexport)
+	#define PAWN_NATIVE_DLLIMPORT __declspec(dllimport)
+	#define PAWN_NATIVE_API __cdecl
+#elif defined __linux__ || defined __APPLE__
+	#define PAWN_NATIVE_DLLEXPORT __attribute__((visibility("default")))
+	#define PAWN_NATIVE_DLLIMPORT 
+	#define PAWN_NATIVE_API __attribute__((cdecl))
+#endif
+
+#define PAWN_NATIVE_EXPORT PAWN_NATIVE_EXTERN PAWN_NATIVE_DLLEXPORT
+#define PAWN_NATIVE_IMPORT PAWN_NATIVE_EXTERN PAWN_NATIVE_DLLIMPORT
+

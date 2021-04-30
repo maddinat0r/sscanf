@@ -1,74 +1,86 @@
-/*  
+/*
+ *  sscanf 2.10.3
+ *
  *  Version: MPL 1.1
- *  
- *  The contents of this file are subject to the Mozilla Public License Version 
- *  1.1 (the "License"); you may not use this file except in compliance with 
- *  the License. You may obtain a copy of the License at 
+ *
+ *  The contents of this file are subject to the Mozilla Public License Version
+ *  1.1 (the "License"); you may not use this file except in compliance with
+ *  the License. You may obtain a copy of the License at
  *  http://www.mozilla.org/MPL/
- *  
+ *
  *  Software distributed under the License is distributed on an "AS IS" basis,
  *  WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
  *  for the specific language governing rights and limitations under the
  *  License.
- *  
+ *
  *  The Original Code is the sscanf 2.0 SA:MP plugin.
- *  
+ *
  *  The Initial Developer of the Original Code is Alex "Y_Less" Cole.
- *  Portions created by the Initial Developer are Copyright (C) 2010
+ *  Portions created by the Initial Developer are Copyright (C) 2020
  *  the Initial Developer. All Rights Reserved.
- *  
+ *
  *  Contributor(s):
- *  
+ *
+ *      Cheaterman
+ *      Emmet_
+ *      karimcambridge
+ *      leHeix
+ *      maddinat0r
+ *      Southclaws
+ *      Y_Less
+ *      ziggi
+ *
  *  Special Thanks to:
- *  
- *  SA:MP Team past, present and future
+ *
+ *      SA:MP Team past, present, and future.
+ *      maddinat0r, for hosting the repo for a very long time.
+ *      Emmet_, for his efforts in maintaining it for almost a year.
  */
-
-#include "SDK/amx/amx.h"
 
 #include <string.h>
 
+#include "sscanf.h"
+#include "args.h"
 #include "utils.h"
 #include "specifiers.h"
 #include "data.h"
-#include "sscanf.h"
 
 extern logprintf_t
 	logprintf;
 
-#define SAVE_VALUE(m)            \
-	if (doSave)                  \
+#define SAVE_VALUE(m)                   \
+	if (doSave)                         \
 		*cptr++ = m
 
-#define SAVE_VALUE_F(m)          \
-	if (doSave) {                \
-		float f = (float)m;      \
+#define SAVE_VALUE_F(m)                 \
+	if (doSave) {                       \
+		float f = (float)m;             \
 		*cptr++ = amx_ftoc(f); }
 
 // Macros for the regular values.
-#define DO(m,n)                  \
-	{m b;                        \
-	if (Do##n(&string, &b)) {    \
-		SAVE_VALUE((cell)b);     \
-		break; }                 \
-	*input = string;             \
+#define DO(m,n)                         \
+	{ m b;                              \
+	if (Do##n(&string, &b)) {           \
+		SAVE_VALUE((cell)b);            \
+		break; }                        \
+	*input = string;                    \
 	return SSCANF_FAIL_RETURN; }
 
-#define DOV(m,n)                 \
-	{m b;                        \
-	Do##n(&string, &b);          \
+#define DOV(m,n)                        \
+	{ m b;                              \
+	Do##n(&string, &b);                 \
 	SAVE_VALUE((cell)b); }
 
-#define DOF(m,n)                 \
-	{m b;                        \
-	if (Do##n(&string, &b)) {    \
-		SAVE_VALUE_F(b)          \
-		break; }                 \
-	*input = string;             \
+#define DOF(m,n)                        \
+	{ m b;                              \
+	if (Do##n(&string, &b)) {           \
+		SAVE_VALUE_F(b)                 \
+		break; }                        \
+	*input = string;                    \
 	return SSCANF_FAIL_RETURN; }
 
 #define OPTIONAL_INVALID \
-	logprintf("sscanf warning: Optional types invalid in enum specifiers, consider using 'E'.")
+	SscanfWarning("Optional types invalid in enum specifiers, consider using 'E'.")
 
 #define DX(m,n) \
 	OPTIONAL_INVALID;
@@ -86,7 +98,7 @@ bool
 	DoK(AMX * amx, char ** defaults, char ** input, cell * cptr, bool optional, bool all);
 
 int
-	DoEnumValues(char * format, char ** input, cell * cptr, bool defaults)
+	DoEnumValues(char * format, char ** input, cell * cptr, bool defaults, struct args_s & args)
 {
 	// If cptr is NULL we never save - regardless of quiet sections.
 	bool
@@ -145,6 +157,11 @@ int
 				case 'h':
 				case 'x':
 					DO(int, H)
+				case 'M':
+					DX(unsigned int, M)
+					// FALLTHROUGH
+				case 'm':
+					DO(unsigned int, M)
 				case 'O':
 					DX(int, O)
 					// FALLTHROUGH
@@ -168,13 +185,13 @@ int
 					else if (cptr)
 					{
 						// Already in a quiet section.
-						logprintf("sscanf warning: Can't have nestled quiet sections.");
+						SscanfWarning("Can't have nestled quiet sections.");
 					}
 					continue;
 				case '}':
 					if (doSave)
 					{
-						logprintf("sscanf warning: Not in a quiet section.");
+						SscanfWarning("Not in a quiet section.");
 					}
 					else
 					{
@@ -184,7 +201,7 @@ int
 						}
 						else
 						{
-							logprintf("sscanf warning: Can't remove quiet in enum.");
+							SscanfWarning("Can't remove quiet in enum.");
 						}
 					}
 					continue;
@@ -197,7 +214,7 @@ int
 						else return SSCANF_FAIL_RETURN;
 						continue;
 					}
-					//logprintf("sscanf warning: You can't have an optional delimiter.");
+					//SscanfWarning("You can't have an optional delimiter.");
 					// FALLTHROUGH
 				case 'p':
 					// 'P' doesn't exist.
@@ -257,12 +274,6 @@ int
 					}
 					*input = string;
 					return SSCANF_FAIL_RETURN;
-				case 'Z':
-					logprintf("sscanf warning: 'Z' doesn't exist - that would be an optional, deprecated optional string!");
-					// FALLTHROUGH
-				case 'z':
-					logprintf("sscanf warning: 'z' is deprecated, consider using 'S' instead.");
-					// FALLTHROUGH
 				case 'S':
 					OPTIONAL_INVALID;
 					// FALLTHROUGH
@@ -270,7 +281,7 @@ int
 					{
 						// Get the length.
 						int
-							lole = GetLength(&format, true);
+							lole = GetLength(&format, args);
 						if (!lole)
 						{
 							return SSCANF_FAIL_RETURN;
@@ -289,13 +300,39 @@ int
 						}
 					}
 					break;
+				case 'Z':
+					OPTIONAL_INVALID;
+					// FALLTHROUGH
+				case 'z':
+					{
+						// Get the length.
+						int
+							lole = GetLength(&format, args);
+						if (!lole)
+						{
+							return SSCANF_FAIL_RETURN;
+						}
+						char *
+							dest;
+						DoS(&string, &dest, lole, IsEnd(*format));
+						// Send the string to PAWN.
+						if (doSave)
+						{
+							// Save the string.
+							amx_SetString(cptr, dest, 1, 0, lole);
+							// Increase the pointer by the MAXIMUM length of
+							// the string - that's how enum strings work.
+							cptr += lole;
+						}
+					}
+					break;
 				case 'U':
 					DX(int, U)
 					// FALLTHROUGH
 				case 'u':
 					if (*format == '[')
 					{
-						logprintf("sscanf warning: User arrays are not supported in enums.");
+						SscanfWarning("User arrays are not supported in enums.");
 						SkipLength(&format);
 					}
 					#define DoU(m,n) DoU(m,n,0)
@@ -315,7 +352,7 @@ int
 				case 'q':
 					if (*format == '[')
 					{
-						logprintf("sscanf warning: User arrays are not supported in enums.");
+						SscanfWarning("User arrays are not supported in enums.");
 						SkipLength(&format);
 					}
 					#define DoQ(m,n) DoQ(m,n,0)
@@ -335,7 +372,7 @@ int
 				case 'r':
 					if (*format == '[')
 					{
-						logprintf("sscanf warning: User arrays are not supported in enums.");
+						SscanfWarning("User arrays are not supported in enums.");
 						SkipLength(&format);
 					}
 					#define DoR(m,n) DoR(m,n,0)
@@ -351,12 +388,12 @@ int
 					break;
 				case 'A':
 				case 'a':
-					logprintf("sscanf error: Arrays are not supported in enums.");
+					SscanfError("Arrays are not supported in enums.");
 					*input = string;
 					return SSCANF_FAIL_RETURN;
 				case 'E':
 				case 'e':
-					logprintf("sscanf error: Enums are not supported in enums.");
+					SscanfError("Enums are not supported in enums.");
 					*input = string;
 					return SSCANF_FAIL_RETURN;
 				case '\'':
@@ -428,7 +465,7 @@ int
 						}
 						else
 						{
-							logprintf("sscanf warning: Unclosed string literal.");
+							SscanfWarning("Unclosed string literal.");
 							char *
 								find = strstr(string, format);
 							if (!find)
@@ -442,10 +479,10 @@ int
 					}
 					break;
 				case '?':
-					logprintf("sscanf error: Options are not supported in enums.");
+					SscanfError("Options are not supported in enums.");
 					return SSCANF_FAIL_RETURN;
 				case '%':
-					logprintf("sscanf warning: sscanf specifiers do not require '%' before them.");
+					SscanfWarning("sscanf specifiers do not require '%' before them.");
 					continue;
 				case '-':
 					{
@@ -461,6 +498,7 @@ int
 							case 'c':
 							case 'd':
 							case 'h':
+							case 'm':
 							case 'x':
 							case 'o':
 							case 'g':
@@ -473,6 +511,7 @@ int
 							case 'C':
 							case 'D':
 							case 'H':
+							case 'M':
 							case 'X':
 							case 'O':
 							case 'G':
@@ -485,12 +524,12 @@ int
 								break;
 							case 'P':
 							case 'p':
-								logprintf("sscanf warning: A minus delimiter makes no sense.");
+								SscanfWarning("A minus delimiter makes no sense.");
 								len = 0;
 								break;
 							case '{':
 							case '}':
-								logprintf("sscanf warning: A minus quiet section makes no sense.");
+								SscanfWarning("A minus quiet section makes no sense.");
 								len = 0;
 								break;
 							case 'U':
@@ -502,46 +541,46 @@ int
 							case 'r':
 								if (*format == '[')
 								{
-									len = GetLength(&format, true);
+									len = GetLength(&format, args);
 								}
 								break;
 							case 'A':
 								OPTIONAL_INVALID;
 							case 'a':
-								len = GetLength(&format, true);
+								len = GetLength(&format, args);
 								break;
 							case 'E':
 								OPTIONAL_INVALID;
 							case 'e':
-								logprintf("sscanf error: Enums are not supported in enums.");
+								SscanfError("Enums are not supported in enums.");
 								*input = string;
 								return SSCANF_FAIL_RETURN;
 							case 'Z':
-								logprintf("sscanf warning: 'Z' doesn't exist - that would be an optional, deprecated optional string!.");
+								OPTIONAL_INVALID;
 								// FALLTHROUGH
 							case 'z':
-								logprintf("sscanf warning: 'z' is deprecated, consider using 'S' instead.");
-								// FALLTHROUGH
+								len = GetLength(&format, args);
+								break;
 							case 'S':
 								OPTIONAL_INVALID;
 								// FALLTHROUGH
 							case 's':
-								len = GetLength(&format, true);
+								len = GetLength(&format, args);
 								break;
 							case '?':
-								logprintf("sscanf warning: A minus option makes no sense.");
+								SscanfWarning("A minus option makes no sense.");
 								len = 0;
 								break;
 							case '%':
-								logprintf("sscanf warning: sscanf specifiers do not require '%' before them.");
+								SscanfWarning("sscanf specifiers do not require '%' before them.");
 								len = 0;
 								break;
 							case '-':
-								logprintf("sscanf warning: A minus minus makes no sense.");
+								SscanfWarning("A minus minus makes no sense.");
 								len = 0;
 								break;
 							default:
-								logprintf("sscanf warning: Unknown format specifier '%c', skipping.", *(format - 1));
+								SscanfWarning("Unknown format specifier '%c', skipping.", *(format - 1));
 								len = 0;
 								break;
 						}
@@ -552,7 +591,7 @@ int
 					}
 					break;
 				default:
-					logprintf("sscanf warning: Unknown format specifier '%c', skipping.", *(format - 1));
+					SscanfWarning("Unknown format specifier '%c', skipping.", *(format - 1));
 					continue;
 			}
 			// Loop cleanup - only skip one spacer so that we can detect
@@ -584,11 +623,14 @@ int
 }
 
 bool
-	DoE(char ** defaults, char ** input, cell * cptr, bool optional)
+	DoE(char ** defaults, char ** input, struct args_s & args, bool optional, bool doSave)
 {
 	// First, get the type of the array.
 	char *
 		type = GetMultiType(defaults);
+	cell *
+		cptr = NULL;
+	args.Mark();
 	if (!type)
 	{
 		return false;
@@ -624,7 +666,7 @@ bool
 				if (opts == *defaults)
 				{
 					// No defaults found.
-					logprintf("sscanf warning: Empty default values.");
+					SscanfWarning("Empty default values.");
 					optional = false;
 				}
 				// Found a valid end.  Make it null for
@@ -636,7 +678,7 @@ bool
 			}
 			else
 			{
-				logprintf("sscanf warning: Unclosed default value.");
+				SscanfWarning("Unclosed default value.");
 			}
 			if (optional)
 			{
@@ -648,35 +690,59 @@ bool
 				// enum then when the code is called for a second time for the
 				// real values then save will already be false and they won't
 				// get saved.
-				switch (DoEnumValues(type, &opts, cptr, true))
+				if (doSave)
+				{
+					char *
+						tmp = opts;
+					DoEnumValues(type, &tmp, NULL, true, args);
+					cptr = args.Next();
+					args.Restore();
+				}
+				// Do this twice.  Once to get the lengths, once for the data.
+				switch (DoEnumValues(type, &opts, cptr, true, args))
 				{
 					case SSCANF_TRUE_RETURN:
 						break;
 					case SSCANF_CONT_RETURN:
-						logprintf("sscanf error: Insufficient default values.");
+						SscanfError("Insufficient default values.");
 						// FALLTHROUGH
 					default:
 						RestoreDelimiter();
 						return false;
 				}
 				RestoreDelimiter();
+				if (cptr)
+					args.Next();
 			}
 		}
 		else
 		{
-			logprintf("sscanf warning: No default value found.");
+			SscanfWarning("No default value found.");
 			optional = false;
 		}
 	}
 	if (input)
 	{
-		switch (DoEnumValues(type, input, cptr, false))
+		if (doSave && !cptr)
+		{
+			args.Mark();
+			char *
+				tmp = *input;
+			DoEnumValues(type, &tmp, NULL, false, args);
+			cptr = args.Next();
+		}
+		args.Restore();
+		switch (DoEnumValues(type, input, cptr, false, args))
 		{
 			case SSCANF_TRUE_RETURN:
+				if (cptr)
+					args.Next();
 				return true;
 			case SSCANF_CONT_RETURN:
 				if (optional)
 				{
+					if (cptr)
+						args.Next();
 					return true;
 				}
 				// FALLTHROUGH
